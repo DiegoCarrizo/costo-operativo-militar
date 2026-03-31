@@ -9,7 +9,7 @@ st.set_page_config(page_title="Valorización Día Operativo - Oficial", page_ico
 st.title("🛡️ Sistema de Valorización de Costos Operativos (SRT)")
 st.info("Cómputo basado en Orden de Valorización de Medios y Personal - Datos Oficiales")
 
-# --- BASE DE DATOS TÉCNICA ---
+# --- BASE DE DATOS TÉCNICA (Basada en tus archivos) ---
 db_vehiculos = {
     "Ford Ranger (Gasoil)": {"cons_100": 11.0, "mant_km": 150},
     "Hummvee / Hummer (Gasoil)": {"cons_100": 30.0, "mant_km": 450},
@@ -29,7 +29,7 @@ db_drones_usd = {
     "Phantom 4 Pro": 1260.0, "Phantom 4 RTK": 7890.0, "Matrice 200": 5700.0
 }
 
-# --- BARRA LATERAL ---
+# --- BARRA LATERAL (CONFIGURACIONES) ---
 with st.sidebar:
     st.header("📊 Mercado y Divisas")
     tc_bna = st.number_input("Tipo de Cambio BNA (Vendedor)", min_value=1.0, value=950.0)
@@ -40,9 +40,7 @@ with st.sidebar:
 
     st.divider()
     st.header("📡 Conectividad (Starlink)")
-    # OPCIÓN 1: Adquisición de hardware
     quiere_antena = st.checkbox("Sumar Adquisición de Antena ($300.000)", value=False)
-    # OPCIÓN 2: Abono de servicio
     quiere_internet = st.checkbox("Sumar Servicio Internet Mensual ($87.500)", value=False)
     
     costo_antena_fijo = 300000.0
@@ -62,36 +60,39 @@ with st.sidebar:
     dron_sel = st.selectbox("Modelo de Dron (USD)", list(db_drones_usd.keys()))
     horas_gen = st.slider("Horas Generador", 0, 24, 8)
 
-# --- CÁLCULOS ---
-# Logística
+# --- LÓGICA DE CÁLCULO ---
 v_data = db_vehiculos[vehiculo_sel]
 p_uso = p_gasoil if "Gasoil" in vehiculo_sel else p_nafta
 costo_comb_dr = (km_despliegue / 100) * v_data["cons_100"] * p_uso
 costo_mant_dr = km_despliegue * v_data["mant_km"]
 total_logistica = costo_comb_dr + costo_mant_dr
 
-# Personal y Energía
 viaticos_ars = db_viaticos[p1] + db_viaticos[p2] + db_viaticos[p3] + db_viaticos[p4]
 comb_gen_ars = horas_gen * 1.5 * p_gasoil
 
-# Starlink (Selección opcional)
 gasto_antena = costo_antena_fijo if quiere_antena else 0.0
 gasto_internet = abono_mensual_fijo if quiere_internet else 0.0
 
-# Equipo SRT
+# Cálculo específico del equipo en ambas monedas
 valor_usd = db_drones_usd[dron_sel]
-amortizacion_ars = (valor_usd * tc_bna) * 0.001
+valor_pesos_bna = valor_usd * tc_bna
+amortizacion_ars = valor_pesos_bna * 0.001
 
-# TOTAL FINAL
 total_mision = total_logistica + viaticos_ars + comb_gen_ars + gasto_antena + gasto_internet + amortizacion_ars
 
-# --- INTERFAZ ---
-st.markdown(f"### 💹 Cotización: **$ {tc_bna:,.2f}** (BNA Vendedor)")
+# --- INTERFAZ DE RESULTADOS ---
+st.markdown(f"### 💹 Cotización Aplicada: **$ {tc_bna:,.2f}** (Dólar BNA Vendedor)")
 
 col_a, col_b, col_c = st.columns(3)
 col_a.metric("LOGÍSTICA Y PERSONAL", f"$ {(total_logistica + viaticos_ars):,.2f}")
 col_b.metric("TOTAL CONECTIVIDAD", f"$ {(gasto_antena + gasto_internet):,.2f}")
-col_c.metric("EQUIPO SRT (USD)", f"u$s {valor_usd:,.2f}")
+# Punto solicitado: Muestra USD y abajo el equivalente en ARS (delta)
+col_c.metric(
+    label=f"EQUIPO SRT: {dron_sel}", 
+    value=f"u$s {valor_usd:,.2f}", 
+    delta=f"Equiv. ARS {valor_pesos_bna:,.2f}",
+    delta_color="normal"
+)
 
 st.divider()
 
@@ -100,11 +101,11 @@ resumen_data = [
     ["Combustible y Mantenimiento", "ARS", f"$ {total_logistica:,.2f}", total_logistica],
     ["Viáticos Personal (100%)", "ARS", f"$ {viaticos_ars:,.2f}", viaticos_ars],
     ["Energía (Generador)", "ARS", f"$ {comb_gen_ars:,.2f}", comb_gen_ars],
-    ["Amortización Equipo SRT", "USD", f"u$s {valor_usd:,.2f}", amortizacion_ars]
+    ["Amortización Diaria SRT (0.1%)", "ARS", f"$ {amortizacion_ars:,.2f}", amortizacion_ars]
 ]
 
 if quiere_antena:
-    resumen_data.append(["Adquisición Antena Starlink (Única vez)", "ARS", f"$ {costo_antena_fijo:,.2f}", costo_antena_fijo])
+    resumen_data.append(["Adquisición Antena Starlink (Hardware)", "ARS", f"$ {costo_antena_fijo:,.2f}", costo_antena_fijo])
 if quiere_internet:
     resumen_data.append(["Servicio Starlink (Abono Mensual)", "ARS", f"$ {abono_mensual_fijo:,.2f}", abono_mensual_fijo])
 
@@ -118,10 +119,8 @@ st.header(f"TOTAL FINAL A LIQUIDAR: $ {total_mision:,.2f}")
 def generate_docx(df, total_final):
     doc = Document()
     doc.add_heading('VALORIZACIÓN DE COSTOS OPERATIVOS SRT', 0)
-    
-    doc.add_paragraph(f"Vehículo Utilizado: {vehiculo_sel}")
-    doc.add_paragraph(f"Dron Operado: {dron_sel}")
-    doc.add_paragraph(f"Tipo de Cambio Aplicado: {tc_bna} (BNA Vendedor)")
+    doc.add_paragraph(f"Vehículo: {vehiculo_sel} | Dron: {dron_sel}")
+    doc.add_paragraph(f"Tipo de Cambio: $ {tc_bna} (BNA Vendedor)")
 
     table = doc.add_table(rows=1, cols=3)
     table.style = 'Table Grid'
@@ -137,13 +136,6 @@ def generate_docx(df, total_final):
         row_cells[2].text = f"$ {row['Subtotal ARS']:,.2f}"
 
     doc.add_paragraph(f"\nTOTAL FINAL: $ {total_final:,.2f}").bold = True
-    
-    doc.add_paragraph("\nNOTAS TÉCNICAS:")
-    if quiere_internet:
-        doc.add_paragraph("- Se incluye abono mensual completo de Starlink.")
-    if quiere_antena:
-        doc.add_paragraph("- Se incluye costo de adquisición de hardware Starlink por única vez.")
-    
     buffer = BytesIO()
     doc.save(buffer)
     buffer.seek(0)
@@ -155,6 +147,6 @@ doc_buffer = generate_docx(df_resumen, total_mision)
 st.download_button(
     label="📥 Descargar Planilla en WORD (Editable)",
     data=doc_buffer,
-    file_name="valorizacion_srt_personalizada.docx",
+    file_name="valorizacion_srt_oficial.docx",
     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
