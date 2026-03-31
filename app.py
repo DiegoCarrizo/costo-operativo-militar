@@ -3,13 +3,12 @@ import pandas as pd
 
 # CONFIGURACIÓN (Corregido el error de comillas y emoji)
 st.set_page_config(
-    page_title="Valorización Día Operativo - Oficial", 
-    page_icon="🛡️", 
+    page_title="Valorización Día Operativo - Oficial",  
     layout="wide"
 )
 
 # TÍTULO SOLICITADO
-st.title("🛡️ Sistema de Valorización de Costos Operativos (SRT)")
+st.title("Sistema de Valorización de Costos Operativos")
 st.info("Cómputo basado en Orden de Valorización de Medios y Personal - Datos Oficiales")
 
 # --- BASE DE DATOS TÉCNICA ---
@@ -38,10 +37,10 @@ db_drones_usd = {
 
 # --- BARRA LATERAL: CARGA MANUAL ---
 with st.sidebar:
-    st.header("📊 Mercado y Divisas")
+    st.header("Mercado y Divisas")
     tc_bna = st.number_input("Tipo de Cambio BNA (Vendedor)", min_value=1.0, value=950.0)
     
-    st.header("⛽ Combustible (Manual)")
+    st.header("Combustible (Manual)")
     p_nafta = st.number_input("Precio Litro Nafta ($)", min_value=0.0, value=1114.0)
     p_gasoil = st.number_input("Precio Litro Gasoil ($)", min_value=0.0, value=1414.0)
 
@@ -50,13 +49,13 @@ with st.sidebar:
     vehiculo_sel = st.selectbox("Vehículo 4x4", list(db_vehiculos.keys()))
     km_despliegue = st.number_input("Distancia Despliegue/Repliegue (km)", value=100)
     
-    st.subheader("👥 Personal (4 integrantes)")
+    st.subheader("Personal (4 integrantes)")
     p1 = st.selectbox("Conductor", list(db_viaticos.keys()), index=5)
     p2 = st.selectbox("Operador 1", list(db_viaticos.keys()), index=3)
     p3 = st.selectbox("Operador 2", list(db_viaticos.keys()), index=4)
     p4 = st.selectbox("Auxiliar", list(db_viaticos.keys()), index=7)
     
-    st.subheader("🚁 Equipo SRT")
+    st.subheader("Equipo SRT")
     dron_sel = st.selectbox("Modelo de Dron (USD)", list(db_drones_usd.keys()))
     horas_gen = st.slider("Horas Generador (Dogo 3500)", 0, 24, 8)
 
@@ -82,7 +81,7 @@ amortizacion_ars = valor_ars_bna * 0.001 # 0.1% de amortización diaria
 total_op_ars = viaticos_ars + comb_gen_ars + conectividad_ars + amortizacion_ars
 
 # --- INTERFAZ DE RESULTADOS ---
-st.markdown(f"### 💹 Cotización Aplicada: **$ {tc_bna}** (Dólar BNA Vendedor)")
+st.markdown(f"### Cotización Aplicada: **$ {tc_bna}** (Dólar BNA Vendedor)")
 
 c1, c2, c3 = st.columns(3)
 with c1:
@@ -95,7 +94,7 @@ with c3:
 st.divider()
 
 # TABLA DETALLADA
-st.subheader("📋 Detalle de Valorización (Consolidado)")
+st.subheader("Detalle de Valorización (Consolidado)")
 
 resumen = pd.DataFrame({
     "Rubro": ["Combustible Movilidad", "Mantenimiento Programado", "Viáticos Personal (100%)", "Energía (Generador)", "Conectividad", "Amortización Equipo SRT"],
@@ -112,4 +111,4 @@ st.sidebar.success(f"TOTAL MISION: $ {total_final_ars:,.2f}")
 
 # BOTÓN DESCARGA
 csv = resumen.to_csv(index=False).encode('utf-8')
-st.download_button("📥 Descargar Reporte de Valorización", csv, "valorizacion_ SRT.csv", "text/csv")
+st.download_button("📥 Descargar Reporte de Valorización", pdf, "valorizacion_ dia_operativo.pdf", "text/pdf")
