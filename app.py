@@ -1,78 +1,116 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Valorización de Costos Militares", page_icon="🛡️", layout="wide")
+# CONFIGURACIÓN PROFESIONAL
+st.set_page_config(page_title="MIL-OPS: Valorización SRT", page_icon="🪖", layout="wide")
 
-st.title("🛡️ Sistema de Valorización de Costos Operativos")
-st.markdown("### Módulo: Sistemas Remotamente Tripulados (SRT)")
+st.title("🪖 Sistema de Valorización de Costos Operativos (SRT)")
+st.info("Cómputo basado en Orden de Valorización de Medios y Personal (Escala 2024-2025)")
 
-# --- 1. BASE DE DATOS TÉCNICA (Punto d - Cuotas cada 100km) ---
-db_medios = {
-    "Ford Ranger": {"cons_100": 12, "mant_km": 150.0}, # Costo de repuesto/mant por km
-    "Hummvee": {"cons_100": 28, "mant_km": 450.0},
-    "Jeep 230G": {"cons_100": 18, "mant_km": 300.0}
+# --- DATOS EXTRAÍDOS DE TUS ADJUNTOS ---
+# Combustible (según Calculos Logisticos Sep24)
+PRECIO_NAFTA = 1114.0
+PRECIO_GASOIL = 1414.0
+
+# Vehículos: Consumo c/100 km (según archivos adjuntos)
+db_vehiculos = {
+    "Ford Ranger (Gasoil)": {"cons_100": 11.0, "tipo": "Gasoil", "mant_km": 150},
+    "Hummvee / Hummer (Gasoil)": {"cons_100": 30.0, "tipo": "Gasoil", "mant_km": 450},
+    "Jeep MB 230G (Nafta)": {"cons_100": 25.0, "tipo": "Nafta", "mant_km": 300},
+    "Unimog (Gasoil)": {"cons_100": 20.0, "tipo": "Gasoil", "mant_km": 400},
+    "Atego 1726 (Gasoil)": {"cons_100": 50.0, "tipo": "Gasoil", "mant_km": 600}
 }
 
-# --- 2. ENTRADA DE DATOS (Punto a y b) ---
+# Viáticos al 100% (según costo dia operativo dron.xlsx)
+db_viaticos = {
+    "JEMGE": 114644.60,
+    "Oficial Superior": 94581.80,
+    "Oficial Jefe": 74518.99,
+    "Oficial Subalterno": 63054.53,
+    "Suboficial Superior": 57322.30,
+    "Suboficial Subalterno": 51590.07,
+    "Cadete": 37259.50,
+    "Soldado Voluntario / Aspirante": 34393.38
+}
+
+# Drones e Insumos (según costo dia operativo dron.xlsx)
+db_drones = {
+    "Mavic II Enterprise": 3000000,
+    "Mavic IV": 6603000,
+    "Phantom 4 Pro": 1200000,
+    "Phantom 4 RTK": 7500000,
+    "Matrice 200": 5425000
+}
+
+# --- INTERFAZ DE USUARIO ---
 with st.sidebar:
-    st.header("⚙️ Configuración del Módulo")
+    st.header("⚙️ Parámetros de Operación")
     
-    st.subheader("🚚 Medios de Despliegue")
-    vehiculo = st.selectbox("Seleccione Vehículo", list(db_medios.keys()))
-    distancia_dr = st.number_input("Distancia Despliegue/Repliegue (km)", value=100)
+    st.subheader("🚚 Movilidad (Punto 1.d)")
+    vehiculo_sel = st.selectbox("Vehículo de la Unidad", list(db_vehiculos.keys()))
+    km_despliegue = st.number_input("Distancia Despliegue/Repliegue (km)", value=100)
     
-    st.subheader("👥 Personal (Categorías 100%)")
-    cant_pax = st.number_input("Cantidad de Personal", value=4)
-    viatico_diario = st.number_input("Viático según Escala Vigente ($)", value=25000)
+    st.subheader("👥 Personal (Punto 1.b)")
+    # Cuatro personas fijas según requerimiento
+    p1 = st.selectbox("Conductor", list(db_viaticos.keys()), index=5)
+    p2 = st.selectbox("Operador Dron 1", list(db_viaticos.keys()), index=3)
+    p3 = st.selectbox("Operador Dron 2", list(db_viaticos.keys()), index=4)
+    p4 = st.selectbox("Auxiliar", list(db_viaticos.keys()), index=7)
     
-    st.subheader("🔋 Insumos y Equipos")
-    horas_op = st.number_input("Horas de Operación Diaria (Máx)", value=8)
-    precio_comb = st.number_input("Precio Combustible / Litro ($)", value=1100)
-    seguro_equipo = st.number_input("Seguro/Amortización Diaria ($)", value=5000)
+    st.subheader("⚡ Equipos e Insumos (Punto 1.a)")
+    dron_sel = st.selectbox("Modelo de Dron", list(db_drones.keys()))
+    horas_gen = st.slider("Horas Generador (Dogo 3500)", 0, 24, 8)
+    starlink_posesion = st.checkbox("Posee antena Starlink", value=True)
+
+# --- LÓGICA DE CÁLCULO (CUMPLIENDO LA ORDEN) ---
+
+# 1. Costo Despliegue/Repliegue (Cuotas de combustible c/100km + Mantenimiento)
+v_data = db_vehiculos[vehiculo_sel]
+precio_v = PRECIO_GASOIL if v_data["tipo"] == "Gasoil" else PRECIO_NAFTA
+comb_dr = (km_despliegue / 100) * v_data["cons_100"] * precio_v
+mant_dr = km_despliegue * v_data["mant_km"]
+costo_despliegue_total = comb_dr + mant_dr
+
+# 2. Costo Operativo Diario (Personal 100% + Insumos + Seguros)
+viaticos_total = db_viaticos[p1] + db_viaticos[p2] + db_viaticos[p3] + db_viaticos[p4]
+# Generador Dogo 3500 (15L / 10hs = 1.5 L/h)
+comb_gen = horas_gen * 1.5 * PRECIO_GASOIL 
+# Starlink itinerante (87.500 / 30 días)
+costo_starlink = 87500 / 30
+# Amortización/Seguro (Prorrateo 0.1% valor equipo)
+amortizacion = db_drones[dron_sel] * 0.001 
+
+costo_operativo_total = viaticos_total + comb_gen + costo_starlink + amortizacion
+
+# --- VISUALIZACIÓN ---
+st.markdown("---")
+c1, c2 = st.columns(2)
+
+with c1:
+    st.error(f"📦 COSTO DESPLIEGUE/REPLIEGUE\n\n$ {costo_despliegue_total:,.2f}")
+    st.caption(f"Valorizado en Cuotas de Combustible cada {km_despliegue}km + Mantenimiento Prorrateado.")
+
+with c2:
+    st.success(f"⏱️ COSTO DÍA OPERATIVO\n\n$ {costo_operativo_total:,.2f}")
+    st.caption(f"Incluye Viáticos (4 PAX al 100%), Insumos, Energía y Conectividad.")
 
 st.markdown("---")
+st.subheader("📋 Detalle de Gastos por Módulo")
 
-# --- 3. CÁLCULOS SEGÚN ORDEN (Punto c y d) ---
+# Tabla de desglose
+resumen_data = {
+    "Categoría": ["Combustible Vehículo", "Mantenimiento Programado", "Viáticos Personal (100%)", "Combustible Generador", "Conectividad Satelital", "Seguro/Amortización Equipo"],
+    "Despliegue/Repliegue ($)": [comb_dr, mant_dr, 0, 0, 0, 0],
+    "Día Operativo ($)": [0, 0, viaticos_total, comb_gen, costo_starlink, amortizacion]
+}
+df_resumen = pd.DataFrame(resumen_data)
+st.table(df_resumen)
 
-# A. COSTO DE DESPLIEGUE / REPLIEGUE (Punto c y d)
-# Se valoriza en cuotas de combustible cada 100km + mantenimiento proporcional
-litros_dr = (distancia_dr / 100) * db_medios[vehiculo]["cons_100"]
-costo_comb_dr = litros_dr * precio_comb
-mantenimiento_dr = distancia_dr * db_medios[vehiculo]["mant_km"]
-total_despliegue = costo_comb_dr + mantenimiento_dr
-
-# B. COSTO OPERATIVO DIARIO (Punto a)
-# Incluye personal, combustible de generador, starlink y seguros
-viaticos_total = cant_pax * viatico_diario
-consumo_gen = horas_op * 1.1 * precio_comb # Dogo 3500
-conectividad = 2000 # Starlink prorrateado
-total_operativo = viaticos_total + consumo_gen + conectividad + seguro_equipo
-
-# --- 4. PRESENTACIÓN DE RESULTADOS ---
-col1, col2 = st.columns(2)
-
-with col1:
-    st.error(f"🚚 Costo Despliegue/Repliegue\n\n$ {total_despliegue:,.2f}")
-    st.caption(f"Incluye {litros_dr:.1f} lts de combustible y mantenimiento programado por {distancia_dr} km.")
-
-with col2:
-    st.success(f"⏱️ Costo Día Operativo\n\n$ {total_operativo:,.2f}")
-    st.caption(f"Incluye viáticos al 100%, operación de {horas_op}hs y seguros.")
-
-st.markdown("---")
-
-# TABLA DETALLADA PARA RENDICIÓN
-st.subheader("📋 Detalle de Valorización")
-detalle = pd.DataFrame({
-    "Concepto": ["Combustible (Movilidad)", "Mantenimiento/Repuestos", "Viáticos Personal", "Insumos Energía", "Seguros/Custodia", "Conectividad Satelital"],
-    "Despliegue/Repliegue": [costo_comb_dr, mantenimiento_dr, 0, 0, 0, 0],
-    "Día Operativo": [0, 0, viaticos_total, consumo_gen, seguro_equipo, conectividad]
-})
-st.table(detalle)
-
-# Total Final
-st.info(f"**VALOR TOTAL DEL MÓDULO (1er Día): $ {(total_despliegue + total_operativo):,.2f}**")
+# TOTAL FINAL MISION
+st.divider()
+total_mision = costo_despliegue_total + costo_operativo_total
+st.header(f"TOTAL VALORIZADO PRIMER DÍA: $ {total_mision:,.2f}")
 
 # Botón de Descarga
-csv = detalle.to_csv(index=False).encode('utf-8')
-st.download_button("📥 Exportar Valorización (CSV)", csv, "valorizacion_srt.csv", "text/csv")
+csv = df_resumen.to_csv(index=False).encode('utf-8')
+st.download_button("📥 Exportar Planilla de Valorización", csv, "valorizacion_mision.csv", "text/csv")
