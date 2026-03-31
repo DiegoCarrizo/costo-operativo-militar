@@ -4,10 +4,10 @@ import pandas as pd
 # CONFIGURACIÓN
 st.set_page_config(page_title="Valorización SRT - Oficial", page_icon="🪖", layout="wide")
 
-st.title("🛡️ Sistema de Valorización de Costos Operativos (SRT)")
-st.caption("Cumplimiento Estricto Orden de Valorización - Valores en ARS y USD (BNA)")
+st.title("Valorización de Costos Operativos")
+st.caption("Orden de Valorización - Valores en ARS y USD (BNA)")
 
-# --- DATOS TÉCNICOS INTEGRADOS (De tus Excel) ---
+# --- DATOS TÉCNICOS INTEGRADOS---
 db_vehiculos = {
     "Ford Ranger (Gasoil)": {"cons_100": 11.0, "mant_km": 150},
     "Hummvee / Hummer (Gasoil)": {"cons_100": 30.0, "mant_km": 450},
@@ -22,7 +22,7 @@ db_viaticos = {
     "Cadete": 37259.50, "Soldado Voluntario / Aspirante": 34393.38
 }
 
-# Precios de Drones en USD (Según tus archivos)
+# Precios de Drones en USD
 db_drones_usd = {
     "Mavic II Enterprise": 2800.0,
     "Mavic IV": 5500.0,
@@ -31,12 +31,12 @@ db_drones_usd = {
     "Matrice 200": 4800.0
 }
 
-# --- BARRA LATERAL (ENTRADAS MANUALES) ---
+# --- BARRA LATERAL ---
 with st.sidebar:
-    st.header("📊 Variables de Mercado")
+    st.header("Variables de Mercado")
     tipo_cambio_bna = st.number_input("Tipo de Cambio BNA (Vendedor)", min_value=1.0, value=950.0, step=0.5)
     
-    st.subheader("⛽ Combustible (Carga Manual)")
+    st.subheader("Combustible (Carga Manual)")
     precio_nafta = st.number_input("Precio Nafta ($)", min_value=0.0, value=1114.0)
     precio_gasoil = st.number_input("Precio Gasoil ($)", min_value=0.0, value=1414.0)
 
@@ -45,13 +45,13 @@ with st.sidebar:
     vehiculo_sel = st.selectbox("Vehículo", list(db_vehiculos.keys()))
     km_despliegue = st.number_input("Distancia Despliegue/Repliegue (km)", value=100)
     
-    st.subheader("👥 Personal (100% Viático)")
+    st.subheader("Personal (100% Viático)")
     p1 = st.selectbox("Conductor", list(db_viaticos.keys()), index=5)
     p2 = st.selectbox("Operador 1", list(db_viaticos.keys()), index=3)
     p3 = st.selectbox("Operador 2", list(db_viaticos.keys()), index=4)
     p4 = st.selectbox("Auxiliar", list(db_viaticos.keys()), index=7)
     
-    st.subheader("🚁 Equipo SRT")
+    st.subheader("Equipo SRT")
     dron_sel = st.selectbox("Modelo de Dron", list(db_drones_usd.keys()))
     horas_op = st.slider("Horas Operación (Dogo 3500)", 0, 24, 8)
 
@@ -80,7 +80,7 @@ amortizacion_ars = valor_dron_ars * 0.001
 total_op_ars = viaticos_ars + comb_gen_ars + conectividad_ars + amortizacion_ars
 
 # --- PRESENTACIÓN DE RESULTADOS ---
-st.markdown(f"### 💵 Tipo de Cambio Aplicado: $ {tipo_cambio_bna} (BNA Vendedor)")
+st.markdown(f"### Tipo de Cambio Aplicado: $ {tipo_cambio_bna} (BNA Vendedor)")
 
 c1, c2, c3 = st.columns(3)
 with c1:
@@ -91,7 +91,7 @@ with c3:
     st.metric(f"VALOR EQUIPO ({dron_sel})", f"USD {valor_dron_usd:,.2f}", delta=f"ARS {valor_dron_ars:,.2f}")
 
 st.divider()
-st.subheader("📋 Planilla de Valorización Detallada")
+st.subheader("Planilla de Valorización Detallada")
 
 resumen = pd.DataFrame({
     "Concepto": ["Movilidad (Combustible)", "Mantenimiento Programado", "Viáticos Personal (100%)", "Energía (Generador)", "Conectividad", "Amortización Equipo SRT"],
@@ -108,4 +108,4 @@ st.sidebar.success(f"TOTAL MISION: $ {total_mision_ars:,.2f}")
 
 # Botón descarga
 csv = resumen.to_csv(index=False).encode('utf-8')
-st.download_button("📥 Descargar Valorización Oficial", csv, "valorizacion_srt_oficial.csv", "text/csv")
+st.download_button("Descargar Valorización Oficial", csv, "valorizacion_srt_oficial.csv", "text/csv")
