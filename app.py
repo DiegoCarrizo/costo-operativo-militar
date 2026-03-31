@@ -40,7 +40,11 @@ with st.sidebar:
 
     st.divider()
     st.header("📡 Conectividad (Starlink)")
-    posee_antena = st.checkbox("¿Ya posee antena Starlink?", value=False)
+    # OPCIÓN 1: Adquisición de hardware
+    quiere_antena = st.checkbox("Sumar Adquisición de Antena ($300.000)", value=False)
+    # OPCIÓN 2: Abono de servicio
+    quiere_internet = st.checkbox("Sumar Servicio Internet Mensual ($87.500)", value=False)
+    
     costo_antena_fijo = 300000.0
     abono_mensual_fijo = 87500.0 
     
@@ -70,23 +74,23 @@ total_logistica = costo_comb_dr + costo_mant_dr
 viaticos_ars = db_viaticos[p1] + db_viaticos[p2] + db_viaticos[p3] + db_viaticos[p4]
 comb_gen_ars = horas_gen * 1.5 * p_gasoil
 
-# Starlink (Prorrateo para visualización, Abono para suma total)
-prorrateo_diario_starlink = abono_mensual_fijo / 30
-inversion_antena = 0.0 if posee_antena else costo_antena_fijo
+# Starlink (Selección opcional)
+gasto_antena = costo_antena_fijo if quiere_antena else 0.0
+gasto_internet = abono_mensual_fijo if quiere_internet else 0.0
 
 # Equipo SRT
 valor_usd = db_drones_usd[dron_sel]
 amortizacion_ars = (valor_usd * tc_bna) * 0.001
 
-# TOTAL FINAL: Suma abono mensual completo + Inversión antena (si aplica) + resto
-total_mision = total_logistica + viaticos_ars + comb_gen_ars + abono_mensual_fijo + amortizacion_ars + inversion_antena
+# TOTAL FINAL
+total_mision = total_logistica + viaticos_ars + comb_gen_ars + gasto_antena + gasto_internet + amortizacion_ars
 
 # --- INTERFAZ ---
 st.markdown(f"### 💹 Cotización: **$ {tc_bna:,.2f}** (BNA Vendedor)")
 
 col_a, col_b, col_c = st.columns(3)
-col_a.metric("LOGÍSTICA (ARS)", f"$ {total_logistica:,.2f}")
-col_b.metric("ABONO STARLINK (MENSUAL)", f"$ {abono_mensual_fijo:,.2f}")
+col_a.metric("LOGÍSTICA Y PERSONAL", f"$ {(total_logistica + viaticos_ars):,.2f}")
+col_b.metric("TOTAL CONECTIVIDAD", f"$ {(gasto_antena + gasto_internet):,.2f}")
 col_c.metric("EQUIPO SRT (USD)", f"u$s {valor_usd:,.2f}")
 
 st.divider()
@@ -96,12 +100,13 @@ resumen_data = [
     ["Combustible y Mantenimiento", "ARS", f"$ {total_logistica:,.2f}", total_logistica],
     ["Viáticos Personal (100%)", "ARS", f"$ {viaticos_ars:,.2f}", viaticos_ars],
     ["Energía (Generador)", "ARS", f"$ {comb_gen_ars:,.2f}", comb_gen_ars],
-    ["Servicio Starlink (Abono Mensual)", "ARS", f"$ {abono_mensual_fijo:,.2f} (Prorrateo diario: ${prorrateo_diario_starlink:,.2f})", abono_mensual_fijo],
     ["Amortización Equipo SRT", "USD", f"u$s {valor_usd:,.2f}", amortizacion_ars]
 ]
 
-if not posee_antena:
+if quiere_antena:
     resumen_data.append(["Adquisición Antena Starlink (Única vez)", "ARS", f"$ {costo_antena_fijo:,.2f}", costo_antena_fijo])
+if quiere_internet:
+    resumen_data.append(["Servicio Starlink (Abono Mensual)", "ARS", f"$ {abono_mensual_fijo:,.2f}", abono_mensual_fijo])
 
 df_resumen = pd.DataFrame(resumen_data, columns=["Rubro", "Origen", "Detalle de Costo", "Subtotal ARS"])
 st.subheader("📋 Detalle de Valorización Consolidado")
@@ -115,6 +120,7 @@ def generate_docx(df, total_final):
     doc.add_heading('VALORIZACIÓN DE COSTOS OPERATIVOS SRT', 0)
     
     doc.add_paragraph(f"Vehículo Utilizado: {vehiculo_sel}")
+    doc.add_paragraph(f"Dron Operado: {dron_sel}")
     doc.add_paragraph(f"Tipo de Cambio Aplicado: {tc_bna} (BNA Vendedor)")
 
     table = doc.add_table(rows=1, cols=3)
@@ -133,8 +139,10 @@ def generate_docx(df, total_final):
     doc.add_paragraph(f"\nTOTAL FINAL: $ {total_final:,.2f}").bold = True
     
     doc.add_paragraph("\nNOTAS TÉCNICAS:")
-    doc.add_paragraph("- El servicio Starlink se factura por abono mensual completo según política de la empresa proveedora.")
-    doc.add_paragraph("- La adquisición de la antena se considera un gasto de capital por única vez.")
+    if quiere_internet:
+        doc.add_paragraph("- Se incluye abono mensual completo de Starlink.")
+    if quiere_antena:
+        doc.add_paragraph("- Se incluye costo de adquisición de hardware Starlink por única vez.")
     
     buffer = BytesIO()
     doc.save(buffer)
@@ -147,6 +155,6 @@ doc_buffer = generate_docx(df_resumen, total_mision)
 st.download_button(
     label="📥 Descargar Planilla en WORD (Editable)",
     data=doc_buffer,
-    file_name="valorizacion_srt_mensualizada.docx",
+    file_name="valorizacion_srt_personalizada.docx",
     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
