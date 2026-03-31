@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # CONFIGURACIÓN
-st.set_page_config(page_title="Valorización SRT - Oficial", page_icon="🪖", layout="wide")
+st.set_page_config(page_title="Valorización Día Operativo" - Oficial", page_icon="🪖", layout="wide")
 
 st.title("Valorización de Costos Operativos")
 st.caption("Orden de Valorización - Valores en ARS y USD (BNA)")
@@ -41,7 +41,7 @@ with st.sidebar:
     precio_gasoil = st.number_input("Precio Gasoil ($)", min_value=0.0, value=1414.0)
 
     st.divider()
-    st.header("⚙️ Configuración Misión")
+    st.header("⚙️ Configuración Día Operativo")
     vehiculo_sel = st.selectbox("Vehículo", list(db_vehiculos.keys()))
     km_despliegue = st.number_input("Distancia Despliegue/Repliegue (km)", value=100)
     
