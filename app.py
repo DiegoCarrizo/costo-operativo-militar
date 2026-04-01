@@ -4,12 +4,12 @@ from docx import Document
 from io import BytesIO
 
 # CONFIGURACIÓN DE PÁGINA
-st.set_page_config(page_title="Valorización Día Operativo - Oficial", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="Valorización Día Operativo", layout="wide")
 
-st.title("🛡️ Sistema de Valorización de Costos Operativos (SRT)")
+st.title("Sistema de Valorización de Costos Operativos (SRT)")
 st.info("Cómputo basado en Orden de Valorización de Medios y Personal - Datos Oficiales")
 
-# --- BASE DE DATOS TÉCNICA (Basada en tus archivos) ---
+# --- BASE DE DATOS TÉCNICA ---
 db_vehiculos = {
     "Ford Ranger (Gasoil)": {"cons_100": 11.0, "mant_km": 150},
     "Hummvee / Hummer (Gasoil)": {"cons_100": 30.0, "mant_km": 450},
@@ -31,10 +31,10 @@ db_drones_usd = {
 
 # --- BARRA LATERAL (CONFIGURACIONES) ---
 with st.sidebar:
-    st.header("📊 Mercado y Divisas")
+    st.header("Mercado y Divisas")
     tc_bna = st.number_input("Tipo de Cambio BNA (Vendedor)", min_value=1.0, value=950.0)
     
-    st.header("⛽ Combustible (Manual)")
+    st.header("Combustible (Manual)")
     p_nafta = st.number_input("Precio Litro Nafta ($)", min_value=0.0, value=1114.0)
     p_gasoil = st.number_input("Precio Litro Gasoil ($)", min_value=0.0, value=1414.0)
 
@@ -47,11 +47,11 @@ with st.sidebar:
     abono_mensual_fijo = 87500.0 
     
     st.divider()
-    st.header("⚙️ Configuración Misión")
+    st.header("⚙️ Configuración día operativo")
     vehiculo_sel = st.selectbox("Vehículo 4x4", list(db_vehiculos.keys()))
     km_despliegue = st.number_input("Distancia Despliegue (km)", value=100)
     
-    st.subheader("👥 Personal")
+    st.subheader("Personal")
     p1 = st.selectbox("Conductor", list(db_viaticos.keys()), index=5)
     p2 = st.selectbox("Operador 1", list(db_viaticos.keys()), index=3)
     p3 = st.selectbox("Operador 2", list(db_viaticos.keys()), index=4)
@@ -81,7 +81,7 @@ amortizacion_ars = valor_pesos_bna * 0.001
 total_mision = total_logistica + viaticos_ars + comb_gen_ars + gasto_antena + gasto_internet + amortizacion_ars
 
 # --- INTERFAZ DE RESULTADOS ---
-st.markdown(f"### 💹 Cotización Aplicada: **$ {tc_bna:,.2f}** (Dólar BNA Vendedor)")
+st.markdown(f"### Cotización Aplicada: **$ {tc_bna:,.2f}** (Dólar BNA Vendedor)")
 
 col_a, col_b, col_c = st.columns(3)
 col_a.metric("LOGÍSTICA Y PERSONAL", f"$ {(total_logistica + viaticos_ars):,.2f}")
